@@ -7,8 +7,33 @@ def fzf(items, header="", preview=False):
     args = ["fzf", "--height=15", "--border", "--no-info", "--pointer=➤"]
     if header:
         args += ["--header", header]
-    result = subprocess.run(args, input="\n".join(items), capture_output=True, text=True)
-    return result.stdout.strip()
+
+    # записываем список во временный файл
+    import tempfile
+    with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
+        f.write("\n".join(items))
+        fname = f.name
+
+    try:
+        result = subprocess.run(
+            args,
+            stdin=open(fname),
+            stdout=open("/dev/tty"),
+            stderr=open("/dev/tty"),
+            text=True
+        )
+    finally:
+        os.unlink(fname)
+
+    # читаем выбор через tty
+    selected = subprocess.run(
+        ["fzf", "--filter", ""],
+        input="\n".join(items),
+        capture_output=True,
+        text=True
+    )
+
+    return selected.stdout.strip()
 
 def header():
     os.system("clear")

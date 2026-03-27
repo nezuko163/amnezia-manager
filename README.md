@@ -1,2 +1,1 @@
 # amnezia-manager
-# amnezia-manager

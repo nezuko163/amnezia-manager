@@ -4,36 +4,38 @@ import os, subprocess, sys
 DIR = "/etc/amnezia/amneziawg"
 
 def fzf(items, header="", preview=False):
-    args = ["fzf", "--height=15", "--border", "--no-info", "--pointer=➤"]
-    if header:
-        args += ["--header", header]
+    def fzf(items, header=""):
+    import subprocess, tempfile, os
 
-    # записываем список во временный файл
-    import tempfile
     with tempfile.NamedTemporaryFile(mode="w", delete=False) as f:
         f.write("\n".join(items))
         fname = f.name
 
-    try:
-        result = subprocess.run(
-            args,
-            stdin=open(fname),
-            stdout=open("/dev/tty"),
-            stderr=open("/dev/tty"),
-            text=True
-        )
-    finally:
-        os.unlink(fname)
+    cmd = ["fzf", "--height=15", "--border", "--no-info", "--pointer=➤"]
 
-    # читаем выбор через tty
-    selected = subprocess.run(
-        ["fzf", "--filter", ""],
+    if header:
+        cmd += ["--header", header]
+
+    # ВАЖНО: подключаемся к реальному терминалу
+    with open(fname, "r") as input_file, open("/dev/tty", "w") as tty:
+        proc = subprocess.Popen(
+            cmd,
+            stdin=input_file,
+            stdout=tty,
+            stderr=tty
+        )
+        proc.wait()
+
+    # читаем выбор через повторный вызов (фильтр)
+    result = subprocess.run(
+        cmd + ["--filter", ""],
         input="\n".join(items),
         capture_output=True,
         text=True
     )
 
-    return selected.stdout.strip()
+    os.unlink(fname)
+    return result.stdout.strip()
 
 def header():
     os.system("clear")

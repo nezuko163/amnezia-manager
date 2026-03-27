@@ -76,7 +76,29 @@ while True:
         os.system("awg-add-client")
         input("\nEnter...")
     elif choice == "📋 Список клиентов":
-        os.system("awg show awg0 allowed-ips")
+        header()
+        import glob
+        # Строим словарь pubkey -> display_name
+        pubkey_to_name = {}
+        for f in glob.glob(f"{DIR}/client_*_displayname.txt"):
+            safe = os.path.basename(f).replace("_displayname.txt", "")
+            display = open(f).read().strip()
+            pub_file = f"{DIR}/{safe}_public.key"
+            if os.path.exists(pub_file):
+                pub = open(pub_file).read().strip()
+                pubkey_to_name[pub] = display
+
+        # Читаем allowed-ips и подставляем имена
+        result = subprocess.run("awg show awg0 allowed-ips", shell=True, capture_output=True, text=True)
+        print(f"{'Имя':<20} {'IP':<16} {'Публичный ключ'}")
+        print("─" * 70)
+        for line in result.stdout.strip().splitlines():
+            parts = line.split()
+            if len(parts) == 2:
+                pub, ip = parts
+                name = pubkey_to_name.get(pub, "—")
+                print(f"{name:<20} {ip:<16} {pub}")
+
         input("\nEnter...")
     elif choice == "🗑️  Удалить клиента":
         os.system("awg-remove-client")
